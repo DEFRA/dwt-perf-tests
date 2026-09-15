@@ -1,12 +1,19 @@
-FROM defradigital/cdp-perf-test-docker:latest
-
-WORKDIR /opt/perftest
+FROM grafana/k6
 
 COPY scenarios/ ./scenarios/
 COPY entrypoint.sh .
-COPY user.properties .
 
 ENV S3_ENDPOINT=https://s3.eu-west-2.amazonaws.com
-ENV TEST_SCENARIO=test
+
+USER root
+
+RUN apk add --no-cache aws-cli
+RUN chmod +x entrypoint.sh
+
+RUN mkdir -p /reports
+RUN chown -R k6:k6 /reports
+VOLUME reports
+
+USER k6
 
 ENTRYPOINT [ "./entrypoint.sh" ]

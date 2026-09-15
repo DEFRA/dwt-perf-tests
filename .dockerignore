@@ -1,7 +1,12 @@
-node_modules
-Dockerfile
 .git
 .github
 .husky
-jmeter.log
+.env
+.env.example
 reports/
+*.log
+.DS_Store
+.idea
+.vscode
+node_modules
+Dockerfile

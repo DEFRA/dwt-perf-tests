@@ -7,9 +7,12 @@ node_modules
 npm-debug.log
 coverage
 .cache
-.png
-/allure-report
-/allure-results
+.env
+*.log
 jmeter.log
 report.csv
-reports/
+reports/*
+!reports/.gitkeep
+summary.json
+results.json
+results.csv
