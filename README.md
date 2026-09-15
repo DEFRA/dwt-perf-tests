@@ -1,103 +1,72 @@
 # dwt-perf-tests
 
-A JMeter based test runner for the CDP Platform.
+k6 performance tests for Digital Waste Tracking (waste-movement external API), designed to run on the CDP Platform.
 
-- [Licence](#licence)
-  - [About the licence](#about-the-licence)
+## Overview
 
-## Build
+This suite mirrors the legacy `PROFILE=external-api` JMeter profile: eight scenarios (create/update × baseline/load/spike/stress) run sequentially in one container.
 
-Test suites are built automatically by the [.github/workflows/publish.yml](.github/workflows/publish.yml) action whenever a change are committed to the `main` branch.
-A successful build results in a Docker container that is capable of running your tests on the CDP Platform and publishing the results to the CDP Portal.
+## Technology Stack
 
-## Run
+- **Grafana k6** for load testing and performance measurement
+- **Docker** image based on `grafana/k6` with AWS CLI for CDP Portal S3 report publishing
 
-The performance test suites are designed to be run from the CDP Portal.
-The CDP Platform runs test suites in much the same way it runs any other service, it takes a docker image and runs it as an ECS task, automatically provisioning infrastructure as required.
+## Test Coverage
 
-## Local Testing with Docker Compose
+| Profile | Description |
+|---------|-------------|
+| `external-api` | Full suite: create + update movements under baseline, load, spike, and stress shapes |
 
-You can run the entire performance test stack locally using Docker Compose, including LocalStack, Redis, and the target service. This is useful for development, integration testing, or verifying your test scripts **before committing to `main`**, which will trigger GitHub Actions to build and publish the Docker image.
+Scripts live under `scenarios/external-api/{create,update}/`. Shared helpers are in `scenarios/lib/`.
 
-### Build the Docker image
+## Configuration
 
-```bash
-docker compose build --no-cache development
-```
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PROFILE` | Yes | Must be `external-api` |
+| `ENVIRONMENT` | Yes | Target CDP env: `local`, `dev`, `test`, `perf-test`, or `ext-test` |
+| `COGNITO_CLIENT_ID` | Yes | Cognito app client id |
+| `COGNITO_CLIENT_SECRET` | Yes | Cognito app client secret |
+| `COGNITO_OAUTH_BASE_URL` | Yes | Cognito domain (no trailing slash) |
+| `API_CODE` | Yes | Organisation API code for `POST /movements/receive` |
+| `WASTE_MOVEMENT_EXTERNAL_API_BASE_URL` | No | Override API base URL (defaults from `ENVIRONMENT`) |
+| `RUN_ID` | No | Run identifier (CDP sets this; local default `local`) |
 
-This ensures any changes to `entrypoint.sh` or other scripts are picked up properly.
+Copy `.env.example` to `.env` for local runs. CDP Portal injects secrets/env at runtime.
 
----
+## Running Tests
 
-### Start the full test stack
+### Via CDP Portal
 
-```bash
-docker compose up --build
-```
+1. Navigate to **Test Suites** in the CDP Portal
+2. Select this suite and set `PROFILE=external-api` (plus Cognito / `API_CODE` secrets)
+3. Execute against the target environment
+4. Open the HTML reports from the portal when the run finishes
 
-This brings up:
+Reports: each scenario exports a k6 HTML dashboard with graphs; `index.html` links them for the portal.
 
-* `development`: the container that runs your performance tests
-* `localstack`: simulates AWS S3, SNS, SQS, etc.
-* `redis`: backing service for cache
-* `service`: the application under test
+### Locally with Docker
 
-Once all services are healthy, your performance tests will automatically start.
-
----
-
-### Replace `service-name` in Compose File
-
-In the `docker-compose.yml`, make sure to replace:
-
-```yaml
-image: defradigital/service-name:${SERVICE_VERSION:-latest}
-```
-
-with the actual name of your service’s image.
-
-This is the service under test, which must expose a `/health` endpoint and listen on port `3000`.
-
----
-
-### Notes
-
-* S3 bucket is expected to be `s3://test-results`, automatically created inside LocalStack.
-* Logs and reports are written to `./reports` on your host.
-* `entrypoint.sh` should contain the logic to wait for dependencies and kick off the test run.
-* The `depends_on` healthchecks ensure services like `localstack` and `service` are ready before tests start.
-* If you make changes to test scripts or entrypoints, rerun with:
+**Prerequisites:** Docker
 
 ```bash
-docker compose up --build
+cp .env.example .env
+# fill in Cognito + API_CODE values
+
+PROFILE=external-api ./run-perf-test.sh
 ```
 
-## Local Testing with LocalStack
+Reports are written to `./reports/` on the host.
 
-### Build a new Docker image
-```
-docker build . -t my-performance-tests
-```
-### Create a Localstack bucket
-```
-aws --endpoint-url=localhost:4566 s3 mb s3://my-bucket
+### Build only
+
+```bash
+docker build -t dwt-perf-tests .
 ```
 
-### Run performance tests
+## Build / publish (CDP)
 
-```
-docker run \
--e S3_ENDPOINT='http://host.docker.internal:4566' \
--e RESULTS_OUTPUT_S3_PATH='s3://my-bucket' \
--e AWS_ACCESS_KEY_ID='test' \
--e AWS_SECRET_ACCESS_KEY='test' \
--e AWS_SECRET_KEY='test' \
--e AWS_REGION='eu-west-2' \
-my-performance-tests
-```
-
-docker run -e S3_ENDPOINT='http://host.docker.internal:4566' -e RESULTS_OUTPUT_S3_PATH='s3://cdp-infra-dev-test-results/cdp-portal-perf-tests/95a01432-8f47-40d2-8233-76514da2236a' -e AWS_ACCESS_KEY_ID='test' -e AWS_SECRET_ACCESS_KEY='test' -e AWS_SECRET_KEY='test' -e AWS_REGION='eu-west-2' -e ENVIRONMENT='perf-test' my-performance-tests
-
+On push to `main`, [.github/workflows/publish.yml](.github/workflows/publish.yml) builds and publishes the Docker image via `DEFRA/cdp-build-action/build@main`.
 
 ## Licence
 
