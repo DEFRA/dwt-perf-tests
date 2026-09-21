@@ -4,7 +4,7 @@ import {
   THRESHOLDS_MS,
 } from '../../lib/profiles/external-api.js';
 import { setupExternalApiTest } from '../../lib/setup/external-api-setup.js';
-import { runCreateIteration } from '../../lib/flows/external-api-flows.js';
+import { runCreateWasteMovementIteration } from '../../lib/flows/external-api-flows.js';
 
 const ENVIRONMENT = getEnv('ENVIRONMENT');
 
@@ -19,5 +19,5 @@ export function setup() {
 }
 
 export default function (data) {
-  runCreateIteration(data);
+  runCreateWasteMovementIteration(data);
 }
