@@ -21,8 +21,9 @@ export function vuIndex() {
 /**
  * Create-only iteration (POST /movements/receive).
  * @param {{ accessToken: string, baseUrl: string, apiCode: string, environment: string, testType: string }} data
+ * @returns {string|null} wasteTrackingId from the create response, or null on failure
  */
-export function runCreateIteration(data) {
+export function runCreateWasteMovementIteration(data) {
   const index = vuIndex();
   const payload = generateCreateWasteMovementPayload(
     data.apiCode,
@@ -36,15 +37,16 @@ export function runCreateIteration(data) {
     testType: data.testType,
   });
 
+  let wasteTrackingId = null;
+  try {
+    wasteTrackingId = res.json('wasteTrackingId');
+  } catch (e) {
+    wasteTrackingId = null;
+  }
+
   const ok = check(res, {
     'create status is 201': (r) => r.status === 201,
-    'create has wasteTrackingId': (r) => {
-      try {
-        return !!r.json('wasteTrackingId');
-      } catch (e) {
-        return false;
-      }
-    },
+    'create has wasteTrackingId': () => !!wasteTrackingId,
   });
 
   if (!ok) {
@@ -52,6 +54,8 @@ export function runCreateIteration(data) {
   }
 
   thinkTime();
+
+  return wasteTrackingId;
 }
 
 /**
@@ -59,47 +63,13 @@ export function runCreateIteration(data) {
  * Every iteration performs both requests.
  * @param {{ accessToken: string, baseUrl: string, apiCode: string, environment: string, testType: string }} data
  */
-export function runCreateUpdateIteration(data) {
-  const index = vuIndex();
-  const createPayload = generateCreateWasteMovementPayload(
-    data.apiCode,
-    data.testType,
-    index
-  );
-
-  const createRes = receiveMovement(
-    data.baseUrl,
-    data.accessToken,
-    createPayload,
-    {
-      environment: data.environment,
-      name: 'Create Waste Movement',
-      testType: data.testType,
-    }
-  );
-
-  let wasteTrackingId = null;
-  try {
-    wasteTrackingId = createRes.json('wasteTrackingId');
-  } catch (e) {
-    wasteTrackingId = null;
-  }
-
-  const createOk = check(createRes, {
-    'create status is 201': (r) => r.status === 201,
-    'create has wasteTrackingId': () => !!wasteTrackingId,
-  });
-
-  if (!createOk) {
-    console.error(`Create failed: ${createRes.status} ${createRes.body}`);
-  }
-
-  thinkTime();
-
+export function runCreateUpdateWasteMovementIteration(data) {
+  const wasteTrackingId = runCreateWasteMovementIteration(data);
   if (!wasteTrackingId) {
     return;
   }
 
+  const index = vuIndex();
   const updatePayload = generateUpdateWasteMovementPayload(
     data.apiCode,
     data.testType,
