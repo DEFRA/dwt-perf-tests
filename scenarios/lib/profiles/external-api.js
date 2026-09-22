@@ -1,7 +1,8 @@
 /**
  * k6 load options for the external-api profile.
  *
- * For load/stress: 1m ramp to target VUs, then 9m hold (10m total).
+ * For load/stress: default 1m ramp to target VUs, then 9m hold (10m total).
+ * Ramp/hold can be overridden via stageDurations.
  */
 
 /**
@@ -24,12 +25,20 @@ export function baselineOptions(thresholdMs, tags = {}) {
  * @param {number} vus
  * @param {number} thresholdMs
  * @param {Record<string, string>} [tags]
+ * @param {{ ramp?: string, hold?: string }} [stageDurations] - defaults 1m ramp + 9m hold
  */
-export function loadOrStressOptions(vus, thresholdMs, tags = {}) {
+export function loadOrStressOptions(
+  vus,
+  thresholdMs,
+  tags = {},
+  stageDurations = {}
+) {
+  const ramp = stageDurations.ramp ?? '1m';
+  const hold = stageDurations.hold ?? '9m';
   return {
     stages: [
-      { duration: '1m', target: vus },
-      { duration: '9m', target: vus },
+      { duration: ramp, target: vus },
+      { duration: hold, target: vus },
     ],
     thresholds: {
       http_req_duration: [`max<${thresholdMs}`],
