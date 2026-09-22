@@ -4,7 +4,7 @@ k6 performance tests for Digital Waste Tracking (waste-movement external API), d
 
 ## Overview
 
-This suite mirrors the legacy `PROFILE=external-api` JMeter profile: eight scenarios (create/update × baseline/load/spike/stress) run sequentially in one container.
+This suite ports legacy JMeter profiles for the waste-movement external API. Set `PROFILE` to choose which tests run.
 
 ## Technology Stack
 
@@ -15,15 +15,25 @@ This suite mirrors the legacy `PROFILE=external-api` JMeter profile: eight scena
 
 | Profile | Description |
 |---------|-------------|
-| `external-api` | Full suite: create + update movements under baseline, load, spike, and stress shapes |
+| `external-api` | Full suite: create + update movements under baseline, load, spike, and stress shapes (8 scenarios) |
+| `nfr-cap-10` | Capacity NFR: 300 VUs, 5m ramp + 25m hold; every iteration creates, ~10% of VUs also update |
 
-Scripts live under `scenarios/external-api/{create,update}/`. Shared helpers are in `scenarios/lib/`.
+Scripts live under `scenarios/{profile}/`. Shared helpers are in `scenarios/lib/`.
+
+### Pass / fail
+
+- **`external-api`:** each scenario fails if any request exceeds that shape’s max latency threshold, or if check pass rate is ≤ 99%.
+- **`nfr-cap-10`:** fails if more than 1% of requests take ≥ 5s (`p(99)<5000`), or if check pass rate is ≤ 99%. Checks are create **201** + `wasteTrackingId`, and update **200** where update runs.
+
+### Reports
+
+Each scenario exports a k6 HTML dashboard with graphs. Use `reports/index.html` for pass/fail status; open the linked per-scenario HTML files for latency/VU graphs only (they do not highlight threshold failure).
 
 ## Configuration
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PROFILE` | Yes | Must be `external-api` |
+| `PROFILE` | Yes | `external-api` or `nfr-cap-10` |
 | `ENVIRONMENT` | Yes | Target CDP env: `local`, `dev`, `test`, `perf-test`, or `ext-test` |
 | `COGNITO_CLIENT_ID` | Yes | Cognito app client id |
 | `COGNITO_CLIENT_SECRET` | Yes | Cognito app client secret |
@@ -39,11 +49,11 @@ Copy `.env.example` to `.env` for local runs. CDP Portal injects secrets/env at 
 ### Via CDP Portal
 
 1. Navigate to **Test Suites** in the CDP Portal
-2. Select this suite and set `PROFILE=external-api` (plus Cognito / `API_CODE` secrets)
+2. Select this suite and set `PROFILE` (`external-api` or `nfr-cap-10`) plus Cognito / `API_CODE` secrets
 3. Execute against the target environment
 4. Open the HTML reports from the portal when the run finishes
 
-Reports: each scenario exports a k6 HTML dashboard with graphs; `index.html` links them for the portal.
+Start with `index.html` for pass/fail; use the linked scenario reports for graphs.
 
 ### Locally with Docker
 
@@ -54,9 +64,11 @@ cp .env.example .env
 # fill in Cognito + API_CODE values
 
 PROFILE=external-api ./run-perf-test.sh
+# or
+PROFILE=nfr-cap-10 ./run-perf-test.sh
 ```
 
-Reports are written to `./reports/` on the host.
+Reports are written to `./reports/` on the host (`index.html` for pass/fail, per-scenario HTML for graphs).
 
 ### Build only
 

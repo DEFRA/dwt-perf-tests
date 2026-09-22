@@ -1,6 +1,6 @@
 #!/bin/sh
 # CDP / Docker entrypoint.
-# PROFILE=external-api runs all 8 scenarios sequentially.
+# PROFILE selects which scenario scripts to run.
 
 set -eu
 
@@ -13,21 +13,15 @@ if [ -n "${CDP_HTTP_PROXY:-}" ]; then
 fi
 
 if [ -z "${PROFILE:-}" ]; then
-  echo "PROFILE is not set. Set PROFILE=external-api"
+  echo "PROFILE is not set. Set PROFILE=external-api or PROFILE=nfr-cap-10"
   exit 1
 fi
 
 PROFILE=$(echo "$PROFILE" | tr '[:upper:]' '[:lower:]')
 
-if [ "$PROFILE" != "external-api" ]; then
-  echo "Unknown PROFILE: $PROFILE (only external-api is supported)"
-  exit 1
-fi
-
-mkdir -p /reports
-rm -f /reports/metrics.json /reports/index.html /reports/*.html /reports/metrics-*.json /reports/suite-status.txt
-
-SCRIPTS="
+case "$PROFILE" in
+  external-api)
+    SCRIPTS="
 scenarios/external-api/create/baseline.js
 scenarios/external-api/create/load.js
 scenarios/external-api/create/spike.js
@@ -37,6 +31,18 @@ scenarios/external-api/update/load.js
 scenarios/external-api/update/spike.js
 scenarios/external-api/update/stress.js
 "
+    ;;
+  nfr-cap-10)
+    SCRIPTS="scenarios/nfr-cap-10/load.js"
+    ;;
+  *)
+    echo "Unknown PROFILE: $PROFILE (supported: external-api, nfr-cap-10)"
+    exit 1
+    ;;
+esac
+
+mkdir -p /reports
+rm -f /reports/metrics.json /reports/index.html /reports/*.html /reports/metrics-*.json /reports/suite-status.txt
 
 SUITE_EXIT=0
 : > /reports/metrics.json
@@ -47,10 +53,15 @@ export K6_WEB_DASHBOARD=true
 export K6_WEB_DASHBOARD_PORT=-1
 export K6_WEB_DASHBOARD_PERIOD="${K6_WEB_DASHBOARD_PERIOD:-1s}"
 
-echo "Running profile: $PROFILE (8 scenarios)"
+SCRIPT_COUNT=0
+for _ in $SCRIPTS; do
+  SCRIPT_COUNT=$((SCRIPT_COUNT + 1))
+done
+
+echo "Running profile: $PROFILE ($SCRIPT_COUNT scenario(s))"
 
 for script in $SCRIPTS; do
-  name=$(echo "$script" | sed 's|scenarios/external-api/||; s|/|-|g; s|\.js||')
+  name=$(echo "$script" | sed 's|^scenarios/||; s|/|-|g; s|\.js$||')
   metrics_file="/reports/metrics-${name}.json"
   report_file="/reports/${name}.html"
 
@@ -152,4 +163,4 @@ if [ "$SUITE_EXIT" -ne 0 ]; then
   exit 1
 fi
 
-echo "external-api suite completed successfully"
+echo "Profile ${PROFILE} completed successfully"

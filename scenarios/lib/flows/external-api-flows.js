@@ -59,16 +59,11 @@ export function runCreateWasteMovementIteration(data) {
 }
 
 /**
- * Create then update iteration (POST then PUT /movements/{id}/receive).
- * Every iteration performs both requests.
+ * PUT /movements/{id}/receive after a successful create.
  * @param {{ accessToken: string, baseUrl: string, apiCode: string, environment: string, testType: string }} data
+ * @param {string} wasteTrackingId
  */
-export function runCreateUpdateWasteMovementIteration(data) {
-  const wasteTrackingId = runCreateWasteMovementIteration(data);
-  if (!wasteTrackingId) {
-    return;
-  }
-
+function runUpdateWasteMovement(data, wasteTrackingId) {
   const index = vuIndex();
   const updatePayload = generateUpdateWasteMovementPayload(
     data.apiCode,
@@ -97,4 +92,35 @@ export function runCreateUpdateWasteMovementIteration(data) {
   }
 
   thinkTime();
+}
+
+/**
+ * Create then update iteration (POST then PUT /movements/{id}/receive).
+ * Every iteration performs both requests.
+ * @param {{ accessToken: string, baseUrl: string, apiCode: string, environment: string, testType: string }} data
+ */
+export function runCreateUpdateWasteMovementIteration(data) {
+  const wasteTrackingId = runCreateWasteMovementIteration(data);
+  if (!wasteTrackingId) {
+    return;
+  }
+
+  runUpdateWasteMovement(data, wasteTrackingId);
+}
+
+/**
+ * Create every iteration; update only when vuIndex % 10 === 0 (~10% of VUs).
+ * @param {{ accessToken: string, baseUrl: string, apiCode: string, environment: string, testType: string }} data
+ */
+export function runCreatePartialUpdateWasteMovementIteration(data) {
+  const wasteTrackingId = runCreateWasteMovementIteration(data);
+  if (!wasteTrackingId) {
+    return;
+  }
+
+  if (vuIndex() % 10 !== 0) {
+    return;
+  }
+  // Create update movements 10% of the time, which is roughly the percentage of updates vs. creates in prod
+  runUpdateWasteMovement(data, wasteTrackingId);
 }
