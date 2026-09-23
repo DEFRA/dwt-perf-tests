@@ -13,7 +13,7 @@ if [ -n "${CDP_HTTP_PROXY:-}" ]; then
 fi
 
 if [ -z "${PROFILE:-}" ]; then
-  echo "PROFILE is not set. Set PROFILE=external-api or PROFILE=nfr-cap-10"
+  echo "PROFILE is not set. Set PROFILE=external-api, nfr-cap-10, or bulk-upload"
   exit 1
 fi
 
@@ -35,8 +35,20 @@ scenarios/external-api/update/stress.js
   nfr-cap-10)
     SCRIPTS="scenarios/nfr-cap-10/load.js"
     ;;
+  bulk-upload)
+    SCRIPTS="
+scenarios/bulk-upload/create/baseline.js
+scenarios/bulk-upload/create/load.js
+scenarios/bulk-upload/create/spike.js
+scenarios/bulk-upload/create/stress.js
+scenarios/bulk-upload/update/baseline.js
+scenarios/bulk-upload/update/load.js
+scenarios/bulk-upload/update/spike.js
+scenarios/bulk-upload/update/stress.js
+"
+    ;;
   *)
-    echo "Unknown PROFILE: $PROFILE (supported: external-api, nfr-cap-10)"
+    echo "Unknown PROFILE: $PROFILE (supported: external-api, nfr-cap-10, bulk-upload)"
     exit 1
     ;;
 esac
@@ -134,7 +146,8 @@ done
   done < /reports/suite-status.txt
 
   echo '</tbody></table>'
-  echo '<p class="meta"><a href="metrics.json">Download combined raw metrics (JSON)</a></p>'
+  # Combined raw metrics.json is very big, so disabling to stop large uploads to CDP
+  # echo '<p class="meta"><a href="metrics.json">Download combined raw metrics (JSON)</a></p>'
   echo '</div></body></html>'
 } > /reports/index.html
 
@@ -146,7 +159,8 @@ if [ -n "${RESULTS_OUTPUT_S3_PATH:-}" ]; then
   fi
 
   aws --endpoint-url="${S3_ENDPOINT}" s3 cp /reports/index.html "$RESULTS_OUTPUT_S3_PATH/index.html"
-  aws --endpoint-url="${S3_ENDPOINT}" s3 cp /reports/metrics.json "$RESULTS_OUTPUT_S3_PATH/metrics.json"
+  # Combined raw metrics.json is very big, so disabling to stop large uploads to CDP
+  # aws --endpoint-url="${S3_ENDPOINT}" s3 cp /reports/metrics.json "$RESULTS_OUTPUT_S3_PATH/metrics.json"
 
   for f in /reports/*.html; do
     [ -f "$f" ] || continue

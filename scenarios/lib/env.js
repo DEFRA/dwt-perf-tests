@@ -54,3 +54,26 @@ export function getExternalApiBaseUrl(environment = getEnv('ENVIRONMENT')) {
   }
   return `https://waste-movement-external-api.api.${environment}.cdp-int.defra.cloud`;
 }
+
+/**
+ * Waste-movement backend base URL (bulk-upload profile).
+ * Mirrors JMeter configure_waste_movement_backend_url.groovy:
+ * - CI=true: https://waste-movement-backend.{env}.cdp-int.defra.cloud
+ * - local: http://localhost:3002
+ * - else: https://ephemeral-protected.api.{env}.cdp-int.defra.cloud/waste-movement-backend
+ * @param {string} [environment]
+ * @returns {string}
+ */
+export function getBackendBaseUrl(environment = getEnv('ENVIRONMENT')) {
+  const override = getEnv('WASTE_MOVEMENT_BACKEND_BASE_URL');
+  if (override) {
+    return override.replace(/\/$/, '');
+  }
+  if (getEnv('CI') === 'true') {
+    return `https://waste-movement-backend.${environment}.cdp-int.defra.cloud`;
+  }
+  if (environment === 'local') {
+    return 'http://localhost:3002';
+  }
+  return `https://ephemeral-protected.api.${environment}.cdp-int.defra.cloud/waste-movement-backend`;
+}

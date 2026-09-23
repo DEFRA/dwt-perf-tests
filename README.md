@@ -1,10 +1,10 @@
 # dwt-perf-tests
 
-k6 performance tests for Digital Waste Tracking (waste-movement external API), designed to run on the CDP Platform.
+k6 performance tests for Digital Waste Tracking, designed to run on the CDP Platform.
 
 ## Overview
 
-This suite ports legacy JMeter profiles for the waste-movement external API. Set `PROFILE` to choose which tests run.
+This suite ports legacy JMeter profiles. Set `PROFILE` to choose which tests run.
 
 ## Technology Stack
 
@@ -15,8 +15,9 @@ This suite ports legacy JMeter profiles for the waste-movement external API. Set
 
 | Profile | Description |
 |---------|-------------|
-| `external-api` | Full suite: create + update movements under baseline, load, spike, and stress shapes (8 scenarios) |
+| `external-api` | Public API: create + update movements under baseline, load, spike, and stress (8 scenarios) |
 | `nfr-cap-10` | Capacity NFR: 300 VUs, 5m ramp + 25m hold; every iteration creates, ~10% of VUs also update |
+| `bulk-upload` | Backend bulk API: create + create/update with **250** movements per request; baseline 1 / load 2 / stress 3 VUs; spike 1→3→1 (8 scenarios) |
 
 Scripts live under `scenarios/{profile}/`. Shared helpers are in `scenarios/lib/`.
 
@@ -24,6 +25,7 @@ Scripts live under `scenarios/{profile}/`. Shared helpers are in `scenarios/lib/
 
 - **`external-api`:** each scenario fails if any request exceeds that shape’s max latency threshold, or if check pass rate is ≤ 99%.
 - **`nfr-cap-10`:** fails if more than 1% of requests take ≥ 5s (`p(99)<5000`), or if check pass rate is ≤ 99%. Checks are create **201** + `wasteTrackingId`, and update **200** where update runs.
+- **`bulk-upload`:** fails if any request exceeds **30s**, or if check pass rate is ≤ 99%. Create expects **201**, first `wasteTrackingId`, and **250** movements; update expects **200**.
 
 ### Reports
 
@@ -33,13 +35,17 @@ Each scenario exports a k6 HTML dashboard with graphs. Use `reports/index.html` 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PROFILE` | Yes | `external-api` or `nfr-cap-10` |
+| `PROFILE` | Yes | `external-api`, `nfr-cap-10`, or `bulk-upload` |
 | `ENVIRONMENT` | Yes | Target CDP env: `local`, `dev`, `test`, `perf-test`, or `ext-test` |
-| `COGNITO_CLIENT_ID` | Yes | Cognito app client id |
-| `COGNITO_CLIENT_SECRET` | Yes | Cognito app client secret |
-| `COGNITO_OAUTH_BASE_URL` | Yes | Cognito domain (no trailing slash) |
-| `API_CODE` | Yes | Organisation API code for `POST /movements/receive` |
-| `WASTE_MOVEMENT_EXTERNAL_API_BASE_URL` | No | Override API base URL (defaults from `ENVIRONMENT`) |
+| `COGNITO_CLIENT_ID` | For external-api / nfr-cap-10 | Cognito app client id |
+| `COGNITO_CLIENT_SECRET` | For external-api / nfr-cap-10 | Cognito app client secret |
+| `COGNITO_OAUTH_BASE_URL` | For external-api / nfr-cap-10 | Cognito domain (no trailing slash) |
+| `API_CODE` | For external-api / nfr-cap-10 | Organisation API code for single-movement receive |
+| `SERVICE_AUTH_WASTE_ORGANISATION_BACKEND` | For bulk-upload | Basic auth token (value after `Basic `, same as JMeter) |
+| `CDP_API_KEY` | For bulk-upload (non-local) | CDP API key header |
+| `CI` | No | `true` on CDP for direct backend URL; omit/false for local/ephemeral gateway |
+| `WASTE_MOVEMENT_EXTERNAL_API_BASE_URL` | No | Override public API base URL |
+| `WASTE_MOVEMENT_BACKEND_BASE_URL` | No | Override backend base URL |
 | `RUN_ID` | No | Run identifier (CDP sets this; local default `local`) |
 
 Copy `.env.example` to `.env` for local runs. CDP Portal injects secrets/env at runtime.
@@ -49,7 +55,7 @@ Copy `.env.example` to `.env` for local runs. CDP Portal injects secrets/env at 
 ### Via CDP Portal
 
 1. Navigate to **Test Suites** in the CDP Portal
-2. Select this suite and set `PROFILE` (`external-api` or `nfr-cap-10`) plus Cognito / `API_CODE` secrets
+2. Select this suite and set `PROFILE` plus the secrets for that profile
 3. Execute against the target environment
 4. Open the HTML reports from the portal when the run finishes
 
@@ -61,11 +67,13 @@ Start with `index.html` for pass/fail; use the linked scenario reports for graph
 
 ```bash
 cp .env.example .env
-# fill in Cognito + API_CODE values
+# fill in values for the profile you will run
 
 PROFILE=external-api ./run-perf-test.sh
 # or
 PROFILE=nfr-cap-10 ./run-perf-test.sh
+# or
+PROFILE=bulk-upload ./run-perf-test.sh
 ```
 
 Reports are written to `./reports/` on the host (`index.html` for pass/fail, per-scenario HTML for graphs).
