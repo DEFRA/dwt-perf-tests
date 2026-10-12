@@ -4,7 +4,7 @@ k6 performance tests for Digital Waste Tracking, designed to run on the CDP Plat
 
 ## Overview
 
-This suite ports legacy JMeter profiles. Set `PROFILE` to choose which tests run.
+This suite runs k6 performance profiles for Digital Waste Tracking. Set `PROFILE` to choose which tests run.
 
 ## Technology Stack
 
@@ -18,14 +18,20 @@ This suite ports legacy JMeter profiles. Set `PROFILE` to choose which tests run
 | `external-api` | Public API: create + update movements under baseline, load, spike, and stress (8 scenarios) |
 | `nfr-cap-10` | Capacity NFR: 300 VUs, 5m ramp + 25m hold; every iteration creates, ~10% of VUs also update |
 | `bulk-upload` | Backend bulk API: create + create/update with **250** movements per request; baseline 1 / load 2 / stress 3 VUs; spike 1→3→1 (8 scenarios) |
+| `e2e` | End-to-end user journey: **1000** VUs, 5m ramp + 15m hold (~**20 minutes**); **90%** direct org API / **10%** UI (of which **75%** spreadsheet upload, **25%** API page) |
+| `all` | Runs every scenario from `external-api`, `nfr-cap-10`, `bulk-upload`, and `e2e` in sequence (18 scenarios). Needs credentials for all profiles; long wall-clock time. |
 
 Scripts live under `scenarios/{profile}/`. Shared helpers are in `scenarios/lib/`.
+
+E2E data files live under `scenarios/e2e/data/`: `apiCodes.csv` (shared sequential org API codes for the direct API branch) and `Test1-no-errors-500WM.xlsx` (spreadsheet for the UI upload branch).
 
 ### Pass / fail
 
 - **`external-api`:** each scenario fails if any request exceeds that shape’s max latency threshold, or if check pass rate is ≤ 99%.
 - **`nfr-cap-10`:** fails if more than 1% of requests take ≥ 5s (`p(99)<5000`), or if check pass rate is ≤ 99%. Checks are create **201** + `wasteTrackingId`, and update **200** where update runs.
 - **`bulk-upload`:** fails if any request exceeds **30s**, or if check pass rate is ≤ 99%. Create expects **201**, first `wasteTrackingId`, and **250** movements; update expects **200**.
+- **`e2e`:** fails if any request exceeds **8s**, or if check pass rate is ≤ 99%. Exact status codes per step (e.g. login 302s, create user 201, org GET 200). Think time **15–60s** before each request. Full run is about **20 minutes** of load (plus Docker build time locally).
+- **`all`:** each scenario uses that profile’s own pass/fail rules. The suite fails if any scenario fails.
 
 ### Reports
 
@@ -35,17 +41,19 @@ Each scenario exports a k6 HTML dashboard with graphs. Use `reports/index.html` 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PROFILE` | Yes | `external-api`, `nfr-cap-10`, or `bulk-upload` |
+| `PROFILE` | Yes | `external-api`, `nfr-cap-10`, `bulk-upload`, `e2e`, or `all` |
 | `ENVIRONMENT` | Yes | Target CDP env: `local`, `dev`, `test`, `perf-test`, or `ext-test` |
 | `COGNITO_CLIENT_ID` | For external-api / nfr-cap-10 | Cognito app client id |
 | `COGNITO_CLIENT_SECRET` | For external-api / nfr-cap-10 | Cognito app client secret |
 | `COGNITO_OAUTH_BASE_URL` | For external-api / nfr-cap-10 | Cognito domain (no trailing slash) |
 | `API_CODE` | For external-api / nfr-cap-10 | Organisation API code for single-movement receive |
-| `SERVICE_AUTH_WASTE_ORGANISATION_BACKEND` | For bulk-upload | Basic auth token (value after `Basic `, same as JMeter) |
-| `CDP_API_KEY` | For bulk-upload (non-local) | CDP API key header |
-| `CI` | No | `true` on CDP for direct backend URL; omit/false for local/ephemeral gateway |
+| `SERVICE_AUTH_WASTE_ORGANISATION_BACKEND` | For bulk-upload | Basic auth token (value after `Basic `) |
+| `SERVICE_AUTH_WASTE_MOVEMENT_EXTERNAL_API` | For e2e | Basic auth token for waste-organisation-backend direct API calls (value after `Basic `) |
+| `CDP_API_KEY` | For bulk-upload / e2e | CDP API key header |
+| `ORG_BACKEND_SERVICE_ENDPOINT` | For e2e (optional) | Override org-backend host (default `waste-organisation-backend.{env}.cdp-int.defra.cloud`) |
+| `CI` | No | `true` on CDP for direct bulk backend URL; omit/false for local/ephemeral gateway |
 | `WASTE_MOVEMENT_EXTERNAL_API_BASE_URL` | No | Override public API base URL |
-| `WASTE_MOVEMENT_BACKEND_BASE_URL` | No | Override backend base URL |
+| `WASTE_MOVEMENT_BACKEND_BASE_URL` | No | Override waste-movement backend base URL |
 | `RUN_ID` | No | Run identifier (CDP sets this; local default `local`) |
 
 Copy `.env.example` to `.env` for local runs. CDP Portal injects secrets/env at runtime.
@@ -74,7 +82,13 @@ PROFILE=external-api ./run-perf-test.sh
 PROFILE=nfr-cap-10 ./run-perf-test.sh
 # or
 PROFILE=bulk-upload ./run-perf-test.sh
+# or
+PROFILE=e2e ./run-perf-test.sh
+# or
+PROFILE=all ./run-perf-test.sh
 ```
+
+For `PROFILE=all`, fill in env/secrets for every profile (Cognito, API code, bulk auth, e2e auth, CDP API key).
 
 Reports are written to `./reports/` on the host (`index.html` for pass/fail, per-scenario HTML for graphs).
 

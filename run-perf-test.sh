@@ -5,6 +5,8 @@
 #   PROFILE=external-api ./run-perf-test.sh
 #   PROFILE=nfr-cap-10 ./run-perf-test.sh
 #   PROFILE=bulk-upload ./run-perf-test.sh
+#   PROFILE=e2e ./run-perf-test.sh
+#   PROFILE=all ./run-perf-test.sh
 
 set -euo pipefail
 
@@ -12,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 if [ -z "${PROFILE:-}" ]; then
-  echo "PROFILE is not set. Run e.g. PROFILE=external-api ./run-perf-test.sh (or nfr-cap-10 / bulk-upload)"
+  echo "PROFILE is not set. Run e.g. PROFILE=external-api ./run-perf-test.sh (or nfr-cap-10 / bulk-upload / e2e / all)"
   exit 1
 fi
 
@@ -41,7 +43,9 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   -e WASTE_MOVEMENT_EXTERNAL_API_BASE_URL="${WASTE_MOVEMENT_EXTERNAL_API_BASE_URL:-}" \
   -e WASTE_MOVEMENT_BACKEND_BASE_URL="${WASTE_MOVEMENT_BACKEND_BASE_URL:-}" \
   -e SERVICE_AUTH_WASTE_ORGANISATION_BACKEND="${SERVICE_AUTH_WASTE_ORGANISATION_BACKEND:-}" \
+  -e SERVICE_AUTH_WASTE_MOVEMENT_EXTERNAL_API="${SERVICE_AUTH_WASTE_MOVEMENT_EXTERNAL_API:-}" \
   -e CDP_API_KEY="${CDP_API_KEY:-}" \
+  -e ORG_BACKEND_SERVICE_ENDPOINT="${ORG_BACKEND_SERVICE_ENDPOINT:-}" \
   -e CI="${CI:-}" \
   -e RUN_ID="${RUN_ID:-local}" \
   "$IMAGE_NAME"

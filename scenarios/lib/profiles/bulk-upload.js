@@ -1,7 +1,7 @@
 /**
  * k6 load options for PROFILE=bulk-upload.
  *
- * JMeter shapes: baseline 1 VU; load 2 VUs; stress 3 VUs; spike 1→3→1.
+ * Load shapes: baseline 1 VU; load 2 VUs; stress 3 VUs; spike 1→3→1.
  * All shapes: duration assert 30000 ms.
  */
 
