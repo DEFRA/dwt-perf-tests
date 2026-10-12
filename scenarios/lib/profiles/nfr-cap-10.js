@@ -1,5 +1,5 @@
 /**
- * k6 load options for the nfr-cap-10 profile (JMeter waste-movement-external-api/load-test).
+ * k6 load options for the nfr-cap-10 profile.
  *
  * 300 VUs, 5m ramp + 25m hold (30m total).
  * Latency: fail only if more than 1% of requests exceed 3000 ms (p99 < 3000).

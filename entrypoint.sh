@@ -13,15 +13,13 @@ if [ -n "${CDP_HTTP_PROXY:-}" ]; then
 fi
 
 if [ -z "${PROFILE:-}" ]; then
-  echo "PROFILE is not set. Set PROFILE=external-api, nfr-cap-10, or bulk-upload"
+  echo "PROFILE is not set. Set PROFILE=external-api, nfr-cap-10, bulk-upload, e2e, or all"
   exit 1
 fi
 
 PROFILE=$(echo "$PROFILE" | tr '[:upper:]' '[:lower:]')
 
-case "$PROFILE" in
-  external-api)
-    SCRIPTS="
+EXTERNAL_API_SCRIPTS="
 scenarios/external-api/create/baseline.js
 scenarios/external-api/create/load.js
 scenarios/external-api/create/spike.js
@@ -31,12 +29,8 @@ scenarios/external-api/update/load.js
 scenarios/external-api/update/spike.js
 scenarios/external-api/update/stress.js
 "
-    ;;
-  nfr-cap-10)
-    SCRIPTS="scenarios/nfr-cap-10/load.js"
-    ;;
-  bulk-upload)
-    SCRIPTS="
+NFR_CAP_10_SCRIPTS="scenarios/nfr-cap-10/load.js"
+BULK_UPLOAD_SCRIPTS="
 scenarios/bulk-upload/create/baseline.js
 scenarios/bulk-upload/create/load.js
 scenarios/bulk-upload/create/spike.js
@@ -46,9 +40,31 @@ scenarios/bulk-upload/update/load.js
 scenarios/bulk-upload/update/spike.js
 scenarios/bulk-upload/update/stress.js
 "
+E2E_SCRIPTS="scenarios/e2e/perf.js"
+
+case "$PROFILE" in
+  external-api)
+    SCRIPTS="$EXTERNAL_API_SCRIPTS"
+    ;;
+  nfr-cap-10)
+    SCRIPTS="$NFR_CAP_10_SCRIPTS"
+    ;;
+  bulk-upload)
+    SCRIPTS="$BULK_UPLOAD_SCRIPTS"
+    ;;
+  e2e)
+    SCRIPTS="$E2E_SCRIPTS"
+    ;;
+  all)
+    # Sequential run of every scenario across all profiles
+    SCRIPTS="$EXTERNAL_API_SCRIPTS
+$NFR_CAP_10_SCRIPTS
+$BULK_UPLOAD_SCRIPTS
+$E2E_SCRIPTS
+"
     ;;
   *)
-    echo "Unknown PROFILE: $PROFILE (supported: external-api, nfr-cap-10, bulk-upload)"
+    echo "Unknown PROFILE: $PROFILE (supported: external-api, nfr-cap-10, bulk-upload, e2e, all)"
     exit 1
     ;;
 esac

@@ -57,7 +57,6 @@ export function getExternalApiBaseUrl(environment = getEnv('ENVIRONMENT')) {
 
 /**
  * Waste-movement backend base URL (bulk-upload profile).
- * Mirrors JMeter configure_waste_movement_backend_url.groovy:
  * - CI=true: https://waste-movement-backend.{env}.cdp-int.defra.cloud
  * - local: http://localhost:3002
  * - else: https://ephemeral-protected.api.{env}.cdp-int.defra.cloud/waste-movement-backend

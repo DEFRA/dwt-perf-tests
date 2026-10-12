@@ -3,7 +3,7 @@ import { uuidv4 } from '../data/bulk-waste-movement-payload.js';
 
 /**
  * Headers for bulk backend calls (Basic service auth + CDP API key).
- * @param {string} serviceAuthToken - value after "Basic " (same as JMeter SERVICE_AUTH prop)
+ * @param {string} serviceAuthToken - value after "Basic "
  * @param {string} [apiKey]
  * @returns {Record<string, string>}
  */
