@@ -13,7 +13,7 @@ if [ -n "${CDP_HTTP_PROXY:-}" ]; then
 fi
 
 if [ -z "${PROFILE:-}" ]; then
-  echo "PROFILE is not set. Set PROFILE=external-api, nfr-cap-10, bulk-upload, e2e, or all"
+  echo "PROFILE is not set. Set PROFILE=external-api, beta-2, nfr-cap-10, bulk-upload, e2e, or all"
   exit 1
 fi
 
@@ -41,6 +41,10 @@ scenarios/bulk-upload/update/spike.js
 scenarios/bulk-upload/update/stress.js
 "
 E2E_SCRIPTS="scenarios/e2e/perf.js"
+BETA_2_SCRIPTS="
+scenarios/beta-2/with-delivery-id/baseline.js
+scenarios/beta-2/without-delivery-id/baseline.js
+"
 
 case "$PROFILE" in
   external-api)
@@ -55,16 +59,20 @@ case "$PROFILE" in
   e2e)
     SCRIPTS="$E2E_SCRIPTS"
     ;;
+  beta-2)
+    SCRIPTS="$BETA_2_SCRIPTS"
+    ;;
   all)
     # Sequential run of every scenario across all profiles
     SCRIPTS="$EXTERNAL_API_SCRIPTS
 $NFR_CAP_10_SCRIPTS
 $BULK_UPLOAD_SCRIPTS
 $E2E_SCRIPTS
+$BETA_2_SCRIPTS
 "
     ;;
   *)
-    echo "Unknown PROFILE: $PROFILE (supported: external-api, nfr-cap-10, bulk-upload, e2e, all)"
+    echo "Unknown PROFILE: $PROFILE (supported: external-api, beta-2, nfr-cap-10, bulk-upload, e2e, all)"
     exit 1
     ;;
 esac
