@@ -3,6 +3,7 @@
 # Usage:
 #   set -a && source .env && set +a
 #   PROFILE=external-api ./run-perf-test.sh
+#   PROFILE=beta-2 ./run-perf-test.sh
 #   PROFILE=nfr-cap-10 ./run-perf-test.sh
 #   PROFILE=bulk-upload ./run-perf-test.sh
 #   PROFILE=e2e ./run-perf-test.sh
@@ -14,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 if [ -z "${PROFILE:-}" ]; then
-  echo "PROFILE is not set. Run e.g. PROFILE=external-api ./run-perf-test.sh (or nfr-cap-10 / bulk-upload / e2e / all)"
+  echo "PROFILE is not set. Run e.g. PROFILE=external-api ./run-perf-test.sh (or beta-2 / nfr-cap-10 / bulk-upload / e2e / all)"
   exit 1
 fi
 
