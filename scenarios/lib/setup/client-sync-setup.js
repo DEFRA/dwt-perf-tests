@@ -50,7 +50,7 @@ export function setupClientSyncTest(testType) {
   const environment = requireEnvironment();
   const baseUrl = getClientSyncBaseUrl(environment);
   const serviceAuthToken = requireEnv('SERVICE_AUTH_DWT_CLIENT_SYNC');
-  const apiKey = requireEnv('CDP_API_KEY');
+  const apiKey = getEnv('CDP_API_KEY');
 
   console.log(`client-sync ${testType} — environment: ${environment}`);
   console.log(`Client sync base URL: ${baseUrl}`);

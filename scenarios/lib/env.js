@@ -12,6 +12,19 @@ export function getEnv(name) {
 }
 
 /**
+ * x-api-key for the ephemeral gateway.
+ * Omitted when CI=true, which uses the direct in-cluster host.
+ * @param {string} [apiKey]
+ * @returns {Record<string, string>}
+ */
+export function apiKeyHeader(apiKey = '') {
+  if (getEnv('CI') === 'true') {
+    return {};
+  }
+  return { 'x-api-key': apiKey || '' };
+}
+
+/**
  * @param {string} name
  * @returns {string}
  */

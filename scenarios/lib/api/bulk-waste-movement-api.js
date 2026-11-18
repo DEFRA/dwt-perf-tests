@@ -1,8 +1,10 @@
 import http from 'k6/http';
+import { apiKeyHeader } from '../env.js';
 import { uuidv4 } from '../data/bulk-waste-movement-payload.js';
 
 /**
- * Headers for bulk backend calls (Basic service auth + CDP API key).
+ * Headers for bulk backend calls (Basic service auth).
+ * x-api-key is added only when CI is not true.
  * @param {string} serviceAuthToken - value after "Basic "
  * @param {string} [apiKey]
  * @returns {Record<string, string>}
@@ -11,9 +13,9 @@ export function bulkAuthHeaders(serviceAuthToken, apiKey = '') {
   return {
     'Content-Type': 'application/json',
     Authorization: `Basic ${serviceAuthToken}`,
-    'x-api-key': apiKey || '',
     'Accept-Encoding': 'identity',
     'x-cdp-request-id': uuidv4(),
+    ...apiKeyHeader(apiKey),
   };
 }
 

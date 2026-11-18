@@ -1,10 +1,12 @@
 import http from 'k6/http';
+import { apiKeyHeader } from '../env.js';
 
 /** Tenant whose clients this profile reads. */
 export const TENANT_SERVICE_NAME = 'waste-movement-external-api';
 
 /**
- * Headers for dwt-client-sync (Basic service auth + CDP API key).
+ * Headers for dwt-client-sync (Basic service auth).
+ * x-api-key is added only when CI is not true.
  * @param {string} serviceAuthToken - value after "Basic "
  * @param {string} [apiKey]
  * @returns {Record<string, string>}
@@ -13,8 +15,8 @@ export function clientSyncHeaders(serviceAuthToken, apiKey = '') {
   return {
     Accept: 'application/json',
     Authorization: `Basic ${serviceAuthToken}`,
-    'x-api-key': apiKey || '',
     'Accept-Encoding': 'identity',
+    ...apiKeyHeader(apiKey),
   };
 }
 
