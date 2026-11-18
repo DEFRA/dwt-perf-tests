@@ -7,6 +7,7 @@
 #   PROFILE=nfr-cap-10 ./run-perf-test.sh
 #   PROFILE=bulk-upload ./run-perf-test.sh
 #   PROFILE=e2e ./run-perf-test.sh
+#   PROFILE=client-sync ./run-perf-test.sh
 #   PROFILE=all ./run-perf-test.sh
 
 set -euo pipefail
@@ -15,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 if [ -z "${PROFILE:-}" ]; then
-  echo "PROFILE is not set. Run e.g. PROFILE=external-api ./run-perf-test.sh (or beta-2 / nfr-cap-10 / bulk-upload / e2e / all)"
+  echo "PROFILE is not set. Run e.g. PROFILE=external-api ./run-perf-test.sh (or beta-2 / nfr-cap-10 / bulk-upload / e2e / client-sync / all)"
   exit 1
 fi
 
@@ -46,6 +47,8 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   -e SERVICE_AUTH_WASTE_ORGANISATION_BACKEND="${SERVICE_AUTH_WASTE_ORGANISATION_BACKEND:-}" \
   -e SERVICE_AUTH_WASTE_MOVEMENT_EXTERNAL_API="${SERVICE_AUTH_WASTE_MOVEMENT_EXTERNAL_API:-}" \
   -e CDP_API_KEY="${CDP_API_KEY:-}" \
+  -e SERVICE_AUTH_DWT_CLIENT_SYNC="${SERVICE_AUTH_DWT_CLIENT_SYNC:-}" \
+  -e DWT_CLIENT_SYNC_BASE_URL="${DWT_CLIENT_SYNC_BASE_URL:-}" \
   -e ORG_BACKEND_SERVICE_ENDPOINT="${ORG_BACKEND_SERVICE_ENDPOINT:-}" \
   -e CI="${CI:-}" \
   -e RUN_ID="${RUN_ID:-local}" \
