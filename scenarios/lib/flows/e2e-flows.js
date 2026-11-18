@@ -2,6 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import { scenario, vu } from 'k6/execution';
+import { apiKeyHeader } from '../env.js';
 import { E2E_THRESHOLD_MS } from '../profiles/e2e.js';
 
 /** Binary spreadsheet used by the UI upload journey. */
@@ -113,8 +114,8 @@ function runDirectApi(data, code) {
   const res = http.get(`https://${data.backendHost}${path}`, {
     headers: {
       'content-type': 'application/json',
-      'x-api-key': data.cdpApiKey || '',
       authorization: `Basic ${data.backendBasicAuth || ''}`,
+      ...apiKeyHeader(data.cdpApiKey),
     },
     tags: {
       environment: data.environment,

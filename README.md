@@ -53,7 +53,7 @@ Each scenario exports a k6 HTML dashboard with graphs. Use `reports/index.html` 
 | `API_CODE` | For external-api / nfr-cap-10 / beta-2 | Organisation API code. Phase 1 sends it in the body. Beta-2 sends it as `x-api-code`. |
 | `SERVICE_AUTH_WASTE_ORGANISATION_BACKEND` | For bulk-upload | Basic auth token (value after `Basic `) |
 | `SERVICE_AUTH_WASTE_MOVEMENT_EXTERNAL_API` | For e2e | Basic auth token for waste-organisation-backend direct API calls (value after `Basic `) |
-| `CDP_API_KEY` | For bulk-upload / e2e / client-sync | CDP API key header |
+| `CDP_API_KEY` | For local/ephemeral bulk-upload, e2e, and client-sync | `x-api-key` value. Not sent when `CI=true` |
 | `SERVICE_AUTH_DWT_CLIENT_SYNC` | For client-sync | Basic auth token for dwt-client-sync (value after `Basic `) |
 | `DWT_CLIENT_SYNC_BASE_URL` | No | Override dwt-client-sync base URL |
 | `ORG_BACKEND_SERVICE_ENDPOINT` | For e2e (optional) | Override org-backend host (default `waste-organisation-backend.{env}.cdp-int.defra.cloud`) |
