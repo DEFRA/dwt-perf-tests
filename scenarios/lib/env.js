@@ -76,3 +76,25 @@ export function getBackendBaseUrl(environment = getEnv('ENVIRONMENT')) {
   }
   return `https://ephemeral-protected.api.${environment}.cdp-int.defra.cloud/waste-movement-backend`;
 }
+
+/**
+ * dwt-client-sync base URL (client-sync profile).
+ * - CI=true: https://dwt-client-sync.{env}.cdp-int.defra.cloud
+ * - local: http://localhost:3001
+ * - else: https://ephemeral-protected.api.{env}.cdp-int.defra.cloud/dwt-client-sync
+ * @param {string} [environment]
+ * @returns {string}
+ */
+export function getClientSyncBaseUrl(environment = getEnv('ENVIRONMENT')) {
+  const override = getEnv('DWT_CLIENT_SYNC_BASE_URL');
+  if (override) {
+    return override.replace(/\/$/, '');
+  }
+  if (getEnv('CI') === 'true') {
+    return `https://dwt-client-sync.${environment}.cdp-int.defra.cloud`;
+  }
+  if (environment === 'local') {
+    return 'http://localhost:3001';
+  }
+  return `https://ephemeral-protected.api.${environment}.cdp-int.defra.cloud/dwt-client-sync`;
+}

@@ -16,11 +16,12 @@ This suite runs k6 performance profiles for Digital Waste Tracking. Set `PROFILE
 | Profile | Description |
 |---------|-------------|
 | `external-api` | Public API: create + update movements under baseline, load, spike, and stress (8 scenarios) |
+| `client-sync` | dwt-client-sync: GET one waste-movement-external-api client by a random id under baseline, load, spike, and stress (4 scenarios). The client catalogue is loaded once before those scenarios start. |
 | `beta-2` | Two baselines, 1 user and 1 iteration each: `with-delivery-id` and `without-delivery-id` |
 | `nfr-cap-10` | Capacity NFR: 300 VUs, 5m ramp + 25m hold; every iteration creates, ~10% of VUs also update |
 | `bulk-upload` | Backend bulk API: create + create/update with **250** movements per request; baseline 1 / load 2 / stress 3 VUs; spike 1→3→1 (8 scenarios) |
 | `e2e` | End-to-end user journey: **1000** VUs, 5m ramp + 15m hold (~**20 minutes**); **90%** direct org API / **10%** UI (of which **75%** spreadsheet upload, **25%** API page) |
-| `all` | Runs every scenario from `external-api`, `nfr-cap-10`, `bulk-upload`, `e2e`, and `beta-2` in sequence (20 scenarios). Needs credentials for all profiles; long wall-clock time. |
+| `all` | Runs every scenario from `external-api`, `nfr-cap-10`, `bulk-upload`, `e2e`, `beta-2`, and `client-sync` in sequence (24 scenarios). Needs credentials for all profiles; long wall-clock time. |
 
 Scripts live under `scenarios/{profile}/`. Shared helpers are in `scenarios/lib/`.
 
@@ -29,6 +30,7 @@ E2E data files live under `scenarios/e2e/data/`: `apiCodes.csv` (shared sequenti
 ### Pass / fail
 
 - **`external-api`:** each scenario fails if any request exceeds that shape’s max latency threshold, or if check pass rate is ≤ 99%.
+- **`client-sync`:** fails if a GET client exceeds that shape’s max latency (baseline **2s**, load **3s**, stress **5s**, spike **8s**), or if the check pass rate is ≤ 99%. VUs are baseline **1**, load **50** (1m ramp + 9m hold), stress **100** (1m ramp + 9m hold), and spike **10 → 75 → 10**. Each iteration checks GET client **200** and that `clientId` matches the id requested. The suite GETs the client list once before the scenarios start, and that call is not part of the latency threshold. Each VU then picks a random client id immediately before every GET.
 - **`beta-2`:** each baseline fails if any request exceeds **2s**, or if check pass rate is ≤ 99%. `with-delivery-id` checks movement **201** + `movementId`, collection **201**, delivery **201** + a new `deliveryId`, and receipt **201** returning that delivery id. `without-delivery-id` checks **201** and a minted `deliveryId`. Uses the same Cognito client and `API_CODE` as `external-api`. `apiCode` is the `x-api-code` header.
 - **`nfr-cap-10`:** fails if more than 1% of requests take ≥ 5s (`p(99)<5000`), or if check pass rate is ≤ 99%. Checks are create **201** + `wasteTrackingId`, and update **200** where update runs.
 - **`bulk-upload`:** fails if any request exceeds **30s**, or if check pass rate is ≤ 99%. Create expects **201**, first `wasteTrackingId`, and **250** movements; update expects **200**.
@@ -43,7 +45,7 @@ Each scenario exports a k6 HTML dashboard with graphs. Use `reports/index.html` 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PROFILE` | Yes | `external-api`, `beta-2`, `nfr-cap-10`, `bulk-upload`, `e2e`, or `all` |
+| `PROFILE` | Yes | `external-api`, `beta-2`, `nfr-cap-10`, `bulk-upload`, `e2e`, `client-sync`, or `all` |
 | `ENVIRONMENT` | Yes | Target CDP env: `local`, `dev`, `test`, `perf-test`, or `ext-test` |
 | `COGNITO_CLIENT_ID` | For external-api / nfr-cap-10 / beta-2 | Cognito app client id |
 | `COGNITO_CLIENT_SECRET` | For external-api / nfr-cap-10 / beta-2 | Cognito app client secret |
@@ -51,9 +53,11 @@ Each scenario exports a k6 HTML dashboard with graphs. Use `reports/index.html` 
 | `API_CODE` | For external-api / nfr-cap-10 / beta-2 | Organisation API code. Phase 1 sends it in the body. Beta-2 sends it as `x-api-code`. |
 | `SERVICE_AUTH_WASTE_ORGANISATION_BACKEND` | For bulk-upload | Basic auth token (value after `Basic `) |
 | `SERVICE_AUTH_WASTE_MOVEMENT_EXTERNAL_API` | For e2e | Basic auth token for waste-organisation-backend direct API calls (value after `Basic `) |
-| `CDP_API_KEY` | For bulk-upload / e2e | CDP API key header |
+| `CDP_API_KEY` | For bulk-upload / e2e / client-sync | CDP API key header |
+| `SERVICE_AUTH_DWT_CLIENT_SYNC` | For client-sync | Basic auth token for dwt-client-sync (value after `Basic `) |
+| `DWT_CLIENT_SYNC_BASE_URL` | No | Override dwt-client-sync base URL |
 | `ORG_BACKEND_SERVICE_ENDPOINT` | For e2e (optional) | Override org-backend host (default `waste-organisation-backend.{env}.cdp-int.defra.cloud`) |
-| `CI` | No | `true` on CDP for direct bulk backend URL; omit/false for local/ephemeral gateway |
+| `CI` | No | `true` on CDP for the direct bulk-backend and client-sync hosts; omit/false for the local/ephemeral gateway |
 | `WASTE_MOVEMENT_EXTERNAL_API_BASE_URL` | No | Override public API base URL |
 | `WASTE_MOVEMENT_BACKEND_BASE_URL` | No | Override waste-movement backend base URL |
 | `RUN_ID` | No | Run identifier (CDP sets this; local default `local`) |
@@ -89,10 +93,12 @@ PROFILE=bulk-upload ./run-perf-test.sh
 # or
 PROFILE=e2e ./run-perf-test.sh
 # or
+PROFILE=client-sync ./run-perf-test.sh
+# or
 PROFILE=all ./run-perf-test.sh
 ```
 
-For `PROFILE=all`, fill in env/secrets for every profile (Cognito, API code, bulk auth, e2e auth, CDP API key).
+For `PROFILE=all`, fill in env/secrets for every profile (Cognito, API code, bulk auth, e2e auth, client-sync auth, CDP API key).
 
 Reports are written to `./reports/` on the host (`index.html` for pass/fail, per-scenario HTML for graphs).
 
