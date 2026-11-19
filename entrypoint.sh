@@ -106,53 +106,7 @@ done
 
 echo "Running profile: $PROFILE ($SCRIPT_COUNT scenario(s))"
 
-# One catalogue fetch for every client-sync scenario in this run.
-# Later scenarios read CLIENT_SYNC_CLIENT_IDS and do not list clients again.
-prefetch_client_sync_ids() {
-  if [ -n "${CLIENT_SYNC_CLIENT_IDS:-}" ]; then
-    echo "Client catalogue already loaded; skipping GET /clients"
-    return 0
-  fi
-
-  echo "Fetching client catalogue once before client-sync scenarios"
-  log_file=/tmp/client-sync-ids.log
-  rm -f "$log_file"
-
-  K6_WEB_DASHBOARD=false k6 run --quiet --console-output="$log_file" scenarios/client-sync/prefetch.js
-
-  CLIENT_SYNC_CLIENT_IDS=$(awk '
-    /CLIENT_SYNC_ID / {
-      line = $0
-      sub(/.*CLIENT_SYNC_ID /, "", line)
-      sub(/".*/, "", line)
-      if (line == "") next
-      if (ids != "") ids = ids ","
-      ids = ids line
-    }
-    END { print ids }
-  ' "$log_file")
-  export CLIENT_SYNC_CLIENT_IDS
-
-  if [ -z "$CLIENT_SYNC_CLIENT_IDS" ]; then
-    echo "Failed to read client IDs from the catalogue fetch"
-    exit 1
-  fi
-
-  count=$(printf '%s' "$CLIENT_SYNC_CLIENT_IDS" | awk -F, '{ print NF }')
-  echo "Loaded ${count} client IDs once. Each VU picks a random id before every GET."
-}
-
-CLIENT_SYNC_PREFETCHED=0
-
 for script in $SCRIPTS; do
-  case "$script" in
-    scenarios/client-sync/*)
-      if [ "$CLIENT_SYNC_PREFETCHED" -eq 0 ]; then
-        prefetch_client_sync_ids
-        CLIENT_SYNC_PREFETCHED=1
-      fi
-      ;;
-  esac
   name=$(echo "$script" | sed 's|^scenarios/||; s|/|-|g; s|\.js$||')
   metrics_file="/reports/metrics-${name}.json"
   report_file="/reports/${name}.html"

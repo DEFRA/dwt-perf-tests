@@ -16,7 +16,7 @@ This suite runs k6 performance profiles for Digital Waste Tracking. Set `PROFILE
 | Profile | Description |
 |---------|-------------|
 | `external-api` | Public API: create + update movements under baseline, load, spike, and stress (8 scenarios) |
-| `client-sync` | dwt-client-sync: GET one waste-movement-external-api client by a random id under baseline, load, spike, and stress (4 scenarios). The client catalogue is loaded once before those scenarios start. |
+| `client-sync` | dwt-client-sync: GET one waste-movement-external-api client by a random id under baseline, load, spike, and stress (4 scenarios). Each scenario loads the client catalogue in `setup()`, before its virtual users start. |
 | `beta-2` | Two baselines, 1 user and 1 iteration each: `with-delivery-id` and `without-delivery-id` |
 | `nfr-cap-10` | Capacity NFR: 300 VUs, 5m ramp + 25m hold; every iteration creates, ~10% of VUs also update |
 | `bulk-upload` | Backend bulk API: create + create/update with **250** movements per request; baseline 1 / load 2 / stress 3 VUs; spike 1→3→1 (8 scenarios) |
@@ -30,7 +30,7 @@ E2E data files live under `scenarios/e2e/data/`: `apiCodes.csv` (shared sequenti
 ### Pass / fail
 
 - **`external-api`:** each scenario fails if any request exceeds that shape’s max latency threshold, or if check pass rate is ≤ 99%.
-- **`client-sync`:** fails if a GET client exceeds that shape’s max latency (baseline **2s**, load **3s**, stress **5s**, spike **8s**), or if the check pass rate is ≤ 99%. VUs are baseline **1**, load **50** (1m ramp + 9m hold), stress **100** (1m ramp + 9m hold), and spike **10 → 75 → 10**. Each iteration checks GET client **200** and that `clientId` matches the id requested. The suite GETs the client list once before the scenarios start, and that call is not part of the latency threshold. Each VU then picks a random client id immediately before every GET.
+- **`client-sync`:** fails if a GET client exceeds that shape’s max latency (baseline **2s**, load **3s**, stress **5s**, spike **8s**), or if the check pass rate is ≤ 99%. VUs are baseline **1**, load **50** (1m ramp + 9m hold), stress **100** (1m ramp + 9m hold), and spike **10 → 75 → 10**. Each iteration checks GET client **200** and that `clientId` matches the id requested. Each scenario GETs the client list once in `setup()`, before its virtual users start, and that call is not part of the latency threshold. Each VU then picks a random client id immediately before every GET.
 - **`beta-2`:** each baseline fails if any request exceeds **2s**, or if check pass rate is ≤ 99%. `with-delivery-id` checks movement **201** + `movementId`, collection **201**, delivery **201** + a new `deliveryId`, and receipt **201** returning that delivery id. `without-delivery-id` checks **201** and a minted `deliveryId`. Uses the same Cognito client and `API_CODE` as `external-api`. `apiCode` is the `x-api-code` header.
 - **`nfr-cap-10`:** fails if more than 1% of requests take ≥ 5s (`p(99)<5000`), or if check pass rate is ≤ 99%. Checks are create **201** + `wasteTrackingId`, and update **200** where update runs.
 - **`bulk-upload`:** fails if any request exceeds **30s**, or if check pass rate is ≤ 99%. Create expects **201**, first `wasteTrackingId`, and **250** movements; update expects **200**.
