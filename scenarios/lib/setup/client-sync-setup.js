@@ -24,26 +24,9 @@ function extractClientIds(res) {
 }
 
 /**
- * Comma-separated ids from the one-time catalogue fetch in entrypoint.sh.
- * @returns {string[]|null} null when this process must fetch the catalogue itself
- */
-function preloadedClientIds() {
-  const raw = getEnv('CLIENT_SYNC_CLIENT_IDS');
-  if (!raw) {
-    return null;
-  }
-  return raw
-    .split(',')
-    .map((id) => id.trim())
-    .filter((id) => !!id);
-}
-
-/**
  * Shared setup for client-sync profile scripts.
- * The profile runner loads the catalogue once and passes it in
- * CLIENT_SYNC_CLIENT_IDS. A standalone k6 run fetches it here, still
- * once, before any VU starts.
- * @param {string} testType - Baseline | Load | Stress | Spike | Catalogue
+ * Runs once per scenario, before any VU starts, and loads the client list.
+ * @param {string} testType - Baseline | Load | Stress | Spike
  * @returns {{ serviceAuthToken: string, apiKey: string, baseUrl: string, clientIds: string[], environment: string, testType: string }}
  */
 export function setupClientSyncTest(testType) {
@@ -54,24 +37,6 @@ export function setupClientSyncTest(testType) {
 
   console.log(`client-sync ${testType} — environment: ${environment}`);
   console.log(`Client sync base URL: ${baseUrl}`);
-
-  const preloaded = preloadedClientIds();
-  if (preloaded) {
-    if (preloaded.length === 0) {
-      fail('CLIENT_SYNC_CLIENT_IDS is set but contains no client IDs');
-    }
-    console.log(
-      `Using ${preloaded.length} client IDs from the catalogue loaded before the scenarios`
-    );
-    return {
-      serviceAuthToken,
-      apiKey,
-      baseUrl,
-      clientIds: preloaded,
-      environment,
-      testType,
-    };
-  }
 
   const res = getClients(baseUrl, serviceAuthToken, apiKey, {
     environment,
